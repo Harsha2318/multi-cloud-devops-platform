@@ -1,4 +1,4 @@
-name: Deploy to Kubernetes
+name: Build, Push Docker Image and Deploy to Kubernetes
 
 on:
   push:
@@ -30,6 +30,14 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} -f docker/Dockerfile .
+
+    - name: Push Docker image to ECR
+      run: |
+        docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
     - name: Set up kubectl
       uses: azure/setup-kubectl@v3
       with:
@@ -37,7 +45,6 @@ jobs:
 
     - name: Configure kubeconfig
       run: |
-        mkdir -p $HOME/.kube
         echo "${{ secrets.KUBECONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
 
     - name: Deploy to Kubernetes
